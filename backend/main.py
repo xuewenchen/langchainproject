@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import logging
-from agent import create_agent
+from agent import get_agent
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,14 +28,14 @@ agent_app = None
 @app.on_event("startup")
 async def startup():
     global agent_app
-    agent_app = await create_agent()
+    agent_app = get_agent()
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
         logger.info(f"Received message: {request.message}")
-        result = await agent_app.ainvoke({"messages": [("user", request.message)]})
-        # LangGraph 返回消息列表，获取最后一条消息
+        result = await agent_app.ainvoke({"messages": [{"role": "user", "content": request.message}]})
+        # Get the last AI message from the response
         messages = result.get("messages", [])
         if messages:
             response_text = str(messages[-1].content)
